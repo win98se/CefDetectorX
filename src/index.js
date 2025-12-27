@@ -151,10 +151,25 @@ const searchCef = async (stdout, defaultType = 'Unknown') => {
     }
   }
 }
-await searchCef(await execAsync('es.exe -regex _100_(.+?)\\.pak$'))
-await searchCef(await execAsync('es.exe -s libcef'), 'CEF')
 
-for (const file of (await execAsync('es.exe -regex node(.*?)\\.dll')).replace(/\r/g, '').split('\n')) {
+let ES_PREFIX = null
+
+const es = async (args) => {
+  if (ES_PREFIX === null) {
+    const out = await execAsync(`es.exe -instance 1.5a ${args}`)
+    if (out.trim().length > 0) {
+      ES_PREFIX = '-instance 1.5a '
+      return out
+    }
+    ES_PREFIX = ''
+  }
+  return execAsync(`es.exe ${ES_PREFIX}${args}`)
+}
+
+await searchCef(await es('-regex _100_(.+?)\\.pak$'))
+await searchCef(await es('-s libcef'), 'CEF')
+
+for (const file of (await es('-regex node(.*?)\\.dll')).replace(/\r/g, '').split('\n')) {
   if (file.includes('$RECYCLE.BIN') || file.includes('OneDrive') || await fs.stat(file).then(it => it.isDirectory(), () => true)) continue
   const dir = path.dirname(file)
   for (const it of (await fs.readdir(dir)).filter(it => it.endsWith('.exe'))) {
